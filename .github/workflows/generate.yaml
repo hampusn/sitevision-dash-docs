@@ -75,7 +75,7 @@ jobs:
           mv Sitevision.docset build
 
       - name: Insert icon into Sitevision.docset
-        run: cp icon.png build/Sitevision.docset
+        run: cp resources/icon.png build/Sitevision.docset
 
       - name: Package docset
         run: |
@@ -88,7 +88,7 @@ jobs:
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
 
       - name: Copy Feed xml to output
-        run: cp Sitevision.xml output
+        run: cp resources/Sitevision.xml output
 
       - name: Replace version placeholder in XML with DOCS_VERSION
         run: |
@@ -100,7 +100,7 @@ jobs:
           GH_PAGES_URL: ${{ env.GH_PAGES_URL }}
 
       - name: Copy index.html to output
-        run: cp index.html output
+        run: cp resources/index.html output
 
       - name: Replace dynamic placeholders in index.html
         run: |
@@ -117,7 +117,7 @@ jobs:
           GH_PAGES_URL: ${{ env.GH_PAGES_URL }}
 
       - name: Copy build.json to output
-        run: cp build.json output
+        run: cp resources/build.json output
 
       - name: Replace dynamic placeholders in build.json
         run: |
