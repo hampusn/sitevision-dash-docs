@@ -1,0 +1,164 @@
+name: Generate Dash Docset and files for gh-pages
+on: [workflow_dispatch]
+jobs:
+  build-docset:
+    runs-on: ubuntu-latest
+    outputs:
+      DOCS_VERSION: ${{ steps.download-docs-zip.outputs.DOCS_VERSION }}
+
+    steps:
+      - run: echo "Workflow triggered by event ${{ github.event_name }}."
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up environment variables
+        run: |
+          echo "SITEVISION_API_BASE_URL=https://developer.sitevision.se/webdav/files/apidocs/" >> $GITHUB_ENV
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python3 -V
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.x'
+      - run: go version
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl unzip
+
+      - name: Install javadocset
+        run: |
+          go install github.com/william8th/javadocset@latest
+          echo "Go binaries directory: $(go env GOPATH)/bin"
+
+#      - name: Add Go binaries to PATH
+#        run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Create directories
+        run: mkdir -p output build
+
+      - name: Download Public API docs zip
+        id: download-docs-zip
+        run: |
+          # Define API DOCS ENTRY URL
+          SITEVISION_API_URL="${SITEVISION_API_BASE_URL}overview-summary.html"
+
+          # Find the zip file URL
+          ZIP_URL=$(curl -s "$SITEVISION_API_URL" | grep -Eoi '[^"]+\.zip' | awk -v base="$SITEVISION_API_BASE_URL" '{ print base $1 }')
+          
+          # Extract the version from the zip file name (e.g., apidocs_2025_01_1.zip -> 2025.01.1)
+          DOCS_VERSION=$(basename "$ZIP_URL" | grep -Eo '[0-9]+_[0-9]+_[0-9]+' | sed 's/_/./g')
+          echo "Parsed docs version: $DOCS_VERSION"
+
+          # Save the version in an environment file for later steps and jobs
+          echo "DOCS_VERSION=$DOCS_VERSION" >> $GITHUB_ENV
+          echo "DOCS_VERSION=$DOCS_VERSION" >> $GITHUB_OUTPUT
+          
+          # Download the zip file
+          curl -so "build/apidocs.zip" "$ZIP_URL"
+        env:
+          SITEVISION_API_BASE_URL: ${{ env.SITEVISION_API_BASE_URL }}
+
+      - name: Unzip Public API docs
+        run: unzip -nq build/apidocs.zip -d build
+
+      - name: Generate Sitevision.docset
+        run: |
+          javadocset Sitevision build/apidocs/
+          mv Sitevision.docset output
+
+      - name: Insert icon into Sitevision.docset
+        run: cp icon.png output/Sitevision.docset
+
+      - name: Package docset
+        run: |
+          tar -czf output/Sitevision.docset.tgz -C output Sitevision.docset
+
+      - name: Generate URL to gh-pages and store in env
+        run: echo "GH_PAGES_URL=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+
+      - name: Copy Feed xml to output
+        run: cp Sitevision.xml output
+
+      - name: Replace version placeholder in XML with DOCS_VERSION
+        run: |
+          FEED_ENTRY_URL="${GH_PAGES_URL}/Sitevision.docset.tgz"
+          sed -i "s|DOCS_VERSION|${DOCS_VERSION}|g" output/Sitevision.xml
+          sed -i "s|FEED_ENTRY_URL|${FEED_ENTRY_URL}|g" output/Sitevision.xml
+        env:
+          DOCS_VERSION: ${{ env.DOCS_VERSION }}
+          GH_PAGES_URL: ${{ env.GH_PAGES_URL }}
+
+      - name: Copy index.html to output
+        run: cp index.html output
+
+      - name: Replace dynamic placeholders in index.html
+        run: |
+          FEED_URL="${GH_PAGES_URL}/Sitevision.xml"
+          ENCODED_FEED_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${FEED_URL}', safe=''))")
+          DOCSET_URL="${GH_PAGES_URL}/Sitevision.docset.tgz"
+
+          sed -i "s|DOCS_VERSION|${DOCS_VERSION}|g" output/index.html
+          sed -i "s|ENCODED_FEED_URL|${ENCODED_FEED_URL}|g" output/index.html
+          sed -i "s|FEED_URL|${FEED_URL}|g" output/index.html
+          sed -i "s|DOCSET_URL|${DOCSET_URL}|g" output/index.html
+        env:
+          DOCS_VERSION: ${{ env.DOCS_VERSION }}
+          GH_PAGES_URL: ${{ env.GH_PAGES_URL }}
+
+      - name: Copy build.json to output
+        run: cp build.json output
+
+      - name: Replace dynamic placeholders in build.json
+        run: |
+          BUILD_DATE=$(date -Iseconds)
+          FEED_URL="${GH_PAGES_URL}/Sitevision.xml"
+          DOCSET_URL="${GH_PAGES_URL}/Sitevision.docset.tgz"
+  
+          sed -i "s|DATE|${BUILD_DATE}|g" output/build.json
+          sed -i "s|DOCS_VERSION|${DOCS_VERSION}|g" output/build.json
+          sed -i "s|FEED_URL|${FEED_URL}|g" output/build.json
+          sed -i "s|DOCSET_URL|${DOCSET_URL}|g" output/build.json
+        env:
+          DOCS_VERSION: ${{ env.DOCS_VERSION }}
+          GH_PAGES_URL: ${{ env.GH_PAGES_URL }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docset
+          path: output
+
+  upload-docset:
+    runs-on: ubuntu-latest
+    needs: build-docset
+
+    steps:
+      - run: echo "Uploading files to gh-pages for version ${DOCS_VERSION}."
+        env:
+          DOCS_VERSION: ${{ needs.build-docset.outputs.DOCS_VERSION }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docset
+          path: output
+
+      - name: Upload to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: output
+          publish_branch: gh-pages
+          allow_empty_commit: true
+          commit_message: "Generated docs for version ${{ needs.build-docset.outputs.DOCS_VERSION }}"
