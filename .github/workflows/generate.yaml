@@ -72,14 +72,14 @@ jobs:
       - name: Generate Sitevision.docset
         run: |
           javadocset Sitevision build/apidocs/
-          mv Sitevision.docset output
+          mv Sitevision.docset build
 
       - name: Insert icon into Sitevision.docset
-        run: cp icon.png output/Sitevision.docset
+        run: cp icon.png build/Sitevision.docset
 
       - name: Package docset
         run: |
-          tar -czf output/Sitevision.docset.tgz -C output Sitevision.docset
+          tar -czf output/Sitevision.docset.tgz -C build Sitevision.docset
 
       - name: Generate URL to gh-pages and store in env
         run: echo "GH_PAGES_URL=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
