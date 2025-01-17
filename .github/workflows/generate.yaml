@@ -41,9 +41,6 @@ jobs:
           go install github.com/william8th/javadocset@latest
           echo "Go binaries directory: $(go env GOPATH)/bin"
 
-#      - name: Add Go binaries to PATH
-#        run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
       - name: Create directories
         run: mkdir -p output build
 
