@@ -1,5 +1,8 @@
 name: Generate Dash Docset and files for gh-pages
-on: [workflow_dispatch]
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
 jobs:
   build-docset:
     runs-on: ubuntu-latest
