@@ -31,6 +31,9 @@ jobs:
           go-version: '1.x'
       - run: go version
 
+      - name: Install go dependencies
+        run: go install github.com/william8th/javadocset
+
       - name: Install dependencies
         run: |
           sudo apt-get update
