@@ -1,7 +1,7 @@
 name: Generate Dash Docset and files for gh-pages
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "30 5 * * 0,3" # 5.30 every sunday and wednesday
   workflow_dispatch:
 jobs:
   build-docset:
