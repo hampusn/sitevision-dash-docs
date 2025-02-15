@@ -1,49 +1,36 @@
 name: Generate Dash Docset and files for gh-pages
 on:
   schedule:
-    - cron: "30 5 * * 0,3" # 5.30 every sunday and wednesday
+    - cron: "30 5 * * 0,2,4" # 5.30 every sunday, tuesday and thursday
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Force rebuild even if latest version exists"
+        required: false
+        default: "false"
+        type: boolean
 jobs:
-  build-docset:
+  find-and-check-version:
     runs-on: ubuntu-latest
     outputs:
-      DOCS_VERSION: ${{ steps.download-docs-zip.outputs.DOCS_VERSION }}
+      GH_PAGES_URL: ${{ steps.setup-variables.outputs.GH_PAGES_URL }}
+      ZIP_URL: ${{ steps.find-docs-zip-and-version.outputs.ZIP_URL }}
+      DOCS_VERSION: ${{ steps.find-docs-zip-and-version.outputs.DOCS_VERSION }}
+      SHOULD_BUILD: ${{ steps.check-version.outputs.SHOULD_BUILD }}
 
     steps:
-      - run: echo "Workflow triggered by event ${{ github.event_name }}."
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up environment variables
+      - name: Setup variables
+        id: setup-variables
         run: |
           echo "SITEVISION_API_BASE_URL=https://developer.sitevision.se/webdav/files/apidocs/" >> $GITHUB_ENV
+          echo "GH_PAGES_URL=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+          echo "GH_PAGES_URL=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY##*/}" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-      - run: python3 -V
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.x'
-      - run: go version
-
-      - name: Install go dependencies
-        run: go install github.com/william8th/javadocset
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y curl unzip
-
-      - name: Create directories
-        run: mkdir -p output build
-
-      - name: Download Public API docs zip
-        id: download-docs-zip
+      - name: Find docs zip and version
+        id: find-docs-zip-and-version
         run: |
           # Define API DOCS ENTRY URL
           SITEVISION_API_URL="${SITEVISION_API_BASE_URL}overview-summary.html"
@@ -58,11 +45,85 @@ jobs:
           # Save the version in an environment file for later steps and jobs
           echo "DOCS_VERSION=$DOCS_VERSION" >> $GITHUB_ENV
           echo "DOCS_VERSION=$DOCS_VERSION" >> $GITHUB_OUTPUT
-          
-          # Download the zip file
-          curl -so "build/apidocs.zip" "$ZIP_URL"
+          echo "ZIP_URL=$ZIP_URL" >> $GITHUB_OUTPUT
         env:
           SITEVISION_API_BASE_URL: ${{ env.SITEVISION_API_BASE_URL }}
+
+      - name: Check if version is already built
+        id: check-version
+        run: |
+          GH_PAGES_BUILD_JSON_URL="$GH_PAGES_URL/build.json"
+          echo "Checking existing version from $GH_PAGES_BUILD_JSON_URL"
+
+          EXISTING_VERSION=$(curl -s "$GH_PAGES_BUILD_JSON_URL" | jq -r '.version' 2>/dev/null || echo "none")
+          echo "Existing version: $EXISTING_VERSION"
+          echo "New version: $DOCS_VERSION"
+          echo "Force rebuild: $FORCE_REBUILD"
+
+          if [ "$FORCE_REBUILD" = "true" ]; then
+            echo "Force rebuild enabled. Proceeding with build."
+            echo "SHOULD_BUILD=true" >> $GITHUB_OUTPUT
+          elif [ "$EXISTING_VERSION" = "$DOCS_VERSION" ]; then
+            echo "Latest version is already built. Exiting."
+            echo "SHOULD_BUILD=false" >> $GITHUB_OUTPUT
+          else
+            echo "New version exists. Proceeding with build."
+            echo "SHOULD_BUILD=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          DOCS_VERSION: ${{ env.DOCS_VERSION }}
+          GH_PAGES_URL: ${{ env.GH_PAGES_URL }}
+          FORCE_REBUILD: ${{ github.event.inputs.force }}
+
+  build-docset:
+    runs-on: ubuntu-latest
+    needs: find-and-check-version
+    if: needs.find-and-check-version.outputs.SHOULD_BUILD == 'true'
+    outputs:
+      DOCS_VERSION: ${{ steps.find-docs-zip-and-version.outputs.DOCS_VERSION }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup variables
+        run: |
+          echo "DOCS_VERSION=$DOCS_VERSION" >> $GITHUB_ENV
+          echo "GH_PAGES_URL=$GH_PAGES_URL" >> $GITHUB_ENV
+          echo "ZIP_URL=$ZIP_URL" >> $GITHUB_ENV
+        env:
+          DOCS_VERSION: ${{ needs.find-and-check-version.outputs.DOCS_VERSION }}
+          GH_PAGES_URL: ${{ needs.find-and-check-version.outputs.GH_PAGES_URL }}
+          ZIP_URL: ${{ needs.find-and-check-version.outputs.ZIP_URL }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python3 -V
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.x'
+      - run: go version
+
+      - name: Install go dependencies
+        run: go install github.com/william8th/javadocset
+
+      - name: Create directories
+        run: mkdir -p output build
+
+      - name: Download the zip file
+        id: download-docs-zip
+        run: |
+          if [ -z "$ZIP_URL" ]; then
+            echo "Error: invalid ZIP_URL"
+            exit 1
+          fi
+          curl -so "build/apidocs.zip" "$ZIP_URL"
+        env:
+          ZIP_URL: ${{ env.ZIP_URL }}
 
       - name: Unzip Public API docs
         run: unzip -nq build/apidocs.zip -d build
@@ -78,12 +139,6 @@ jobs:
       - name: Package docset
         run: |
           tar -czf output/Sitevision.docset.tgz -C build Sitevision.docset
-
-      - name: Generate URL to gh-pages and store in env
-        run: echo "GH_PAGES_URL=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
-        env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
 
       - name: Copy Feed xml to output
         run: cp resources/Sitevision.xml output
