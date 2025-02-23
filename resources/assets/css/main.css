@@ -1,0 +1,91 @@
+/* Variables
+-------------------------------------------------------------------------- */
+
+:root {
+  --bulma-body-font-size: 1.25em;
+  --bulma-control-size: var(--bulma-size-medium);
+
+  --instructions-box-app-info-background-color: var(--bulma-info-95);
+  --instructions-box-app-info-font-color: var(--bulma-info-95-invert);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --instructions-box-app-info-background-color: var(--bulma-info-10);
+    --instructions-box-app-info-font-color: var(--bulma-info-10-invert);
+  }
+}
+
+/* General
+-------------------------------------------------------------------------- */
+
+html {
+  background-color: var(--bulma-scheme-main-bis);
+}
+
+.site-content {
+  background-color: var(--bulma-scheme-main);
+}
+
+/* Links
+-------------------------------------------------------------------------- */
+
+a:not(.button) {
+  align-items: center;
+  display: inline-flex;
+  text-decoration: underline;
+}
+
+a:not(.button):hover {
+  text-underline-offset: 4px;
+  text-decoration-thickness: 4px;
+}
+
+a svg {
+  height: 1em;
+  fill: currentColor;
+  margin-left: 0.25rem;
+  width: 1em;
+}
+
+.button svg {
+  margin-left: 0.5rem;
+}
+
+/* Banner
+-------------------------------------------------------------------------- */
+
+.banner {
+  background-color: var(--bulma-primary-dark);
+  color: var(--bulma-primary-light);
+}
+
+html .banner * {
+  color: inherit;
+}
+
+/* App header
+-------------------------------------------------------------------------- */
+
+.app-logo {
+  width: 7rem;
+}
+
+.title-headline {
+  color: var(--bulma-text-weak);
+  display: block;
+}
+
+/* Instructions box
+-------------------------------------------------------------------------- */
+
+.instructions-box {
+  overflow: hidden;
+}
+
+.instructions-box__app-info {
+  background-color: var(--instructions-box-app-info-background-color);
+  color: var(--instructions-box-app-info-font-color);
+  padding: var(--bulma-box-padding);
+  margin: calc(var(--bulma-box-padding) * 2) calc(var(--bulma-box-padding) * -1) calc(var(--bulma-box-padding) * -1);
+}
