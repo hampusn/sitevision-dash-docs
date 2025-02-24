@@ -96,12 +96,6 @@ jobs:
           GH_PAGES_URL: ${{ needs.find-and-check-version.outputs.GH_PAGES_URL }}
           ZIP_URL: ${{ needs.find-and-check-version.outputs.ZIP_URL }}
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-      - run: python3 -V
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -109,10 +103,12 @@ jobs:
       - run: go version
 
       - name: Install go dependencies
-        run: go install github.com/william8th/javadocset
+        run: |
+          go install github.com/william8th/javadocset
+          go install github.com/hairyhenderson/gomplate/v4@v4.3.0
 
       - name: Create directories
-        run: mkdir -p output build
+        run: mkdir output build
 
       - name: Download the zip file
         id: download-docs-zip
@@ -134,54 +130,20 @@ jobs:
           mv Sitevision.docset build
 
       - name: Insert icon into Sitevision.docset
-        run: cp resources/icon.png build/Sitevision.docset
+        run: cp icon.png build/Sitevision.docset
 
       - name: Package docset
         run: |
           tar -czf output/Sitevision.docset.tgz -C build Sitevision.docset
 
-      - name: Copy Feed xml to output
-        run: cp resources/Sitevision.xml output
-
-      - name: Replace version placeholder in XML with DOCS_VERSION
+      - name: Write docs pages to output
         run: |
           FEED_ENTRY_URL="${GH_PAGES_URL}/Sitevision.docset.tgz"
-          sed -i "s|DOCS_VERSION|${DOCS_VERSION}|g" output/Sitevision.xml
-          sed -i "s|FEED_ENTRY_URL|${FEED_ENTRY_URL}|g" output/Sitevision.xml
-        env:
-          DOCS_VERSION: ${{ env.DOCS_VERSION }}
-          GH_PAGES_URL: ${{ env.GH_PAGES_URL }}
-
-      - name: Copy index.html to output
-        run: cp resources/index.html output
-
-      - name: Replace dynamic placeholders in index.html
-        run: |
           FEED_URL="${GH_PAGES_URL}/Sitevision.xml"
-          ENCODED_FEED_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('${FEED_URL}', safe=''))")
           DOCSET_URL="${GH_PAGES_URL}/Sitevision.docset.tgz"
-
-          sed -i "s|DOCS_VERSION|${DOCS_VERSION}|g" output/index.html
-          sed -i "s|ENCODED_FEED_URL|${ENCODED_FEED_URL}|g" output/index.html
-          sed -i "s|FEED_URL|${FEED_URL}|g" output/index.html
-          sed -i "s|DOCSET_URL|${DOCSET_URL}|g" output/index.html
-        env:
-          DOCS_VERSION: ${{ env.DOCS_VERSION }}
-          GH_PAGES_URL: ${{ env.GH_PAGES_URL }}
-
-      - name: Copy build.json to output
-        run: cp resources/build.json output
-
-      - name: Replace dynamic placeholders in build.json
-        run: |
           BUILD_DATE=$(date -Iseconds)
-          FEED_URL="${GH_PAGES_URL}/Sitevision.xml"
-          DOCSET_URL="${GH_PAGES_URL}/Sitevision.docset.tgz"
-  
-          sed -i "s|DATE|${BUILD_DATE}|g" output/build.json
-          sed -i "s|DOCS_VERSION|${DOCS_VERSION}|g" output/build.json
-          sed -i "s|FEED_URL|${FEED_URL}|g" output/build.json
-          sed -i "s|DOCSET_URL|${DOCSET_URL}|g" output/build.json
+
+          gomplate --input-dir=resources --output-dir=output --exclude-processing 'assets/*'
         env:
           DOCS_VERSION: ${{ env.DOCS_VERSION }}
           GH_PAGES_URL: ${{ env.GH_PAGES_URL }}

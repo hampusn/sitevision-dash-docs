@@ -13,7 +13,7 @@
       <div class="hero-body">
         <div class="container">
           <h1 class="title is-2">Sitevision Public API documentation for Dash</h1>
-          <p class="subtitle is-4">Dash documentation for Sitevision Public API version <strong>DOCS_VERSION</strong>.</p>
+          <p class="subtitle is-4">Dash documentation for Sitevision Public API version <strong>{{ .Env.DOCS_VERSION }}</strong>.</p>
         </div>
       </div>
     </div>
@@ -33,7 +33,7 @@
 
           <div class="box instructions-box">
             <ol class="pl-5">
-              <li>Click this link to add the feed into Dash: <a href="dash-feed://ENCODED_FEED_URL">Dash feed</a>.</li>
+              <li>Click this link to add the feed into Dash: <a href="dash-feed://{{ urlquery .Env.FEED_URL }}">Dash feed</a>.</li>
               <li>Press download.</li>
             </ol>
 
@@ -65,7 +65,7 @@
             <ol class="pl-5">
               <li>Start Zeal and open <strong>Tools &gt; Docsets</strong>.</li>
               <li>Click <strong>Add feed</strong>.</li>
-              <li>Paste <code>FEED_URL</code> and click <strong>OK</strong>.</li>
+              <li>Paste <code>{{ .Env.FEED_URL }}</code> and click <strong>OK</strong>.</li>
             </ol>
 
             <div class="instructions-box__app-info has-text-centered">

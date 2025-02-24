@@ -1,4 +1,4 @@
 <entry>
-  <version>/DOCS_VERSION</version>
-  <url>FEED_ENTRY_URL</url>
+  <version>/{{ .Env.DOCS_VERSION }}</version>
+  <url>{{ .Env.FEED_ENTRY_URL }}</url>
 </entry>

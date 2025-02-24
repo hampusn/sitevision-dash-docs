@@ -1,6 +1,6 @@
 {
-  "date": "DATE",
-  "version": "DOCS_VERSION",
-  "feedUrl": "FEED_URL",
-  "docsetUrl": "DOCSET_URL"
+  "date": "{{ .Env.BUILD_DATE }}",
+  "version": "{{ .Env.DOCS_VERSION }}",
+  "feedUrl": "{{ .Env.FEED_URL }}",
+  "docsetUrl": "{{ .Env.DOCSET_URL }}"
 }
