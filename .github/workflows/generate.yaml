@@ -102,10 +102,18 @@ jobs:
           go-version: '1.x'
       - run: go version
 
+      - name: Cache Go build artifacts & binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/bin
+          key: ${{ runner.os }}-go-bin-${{ hashFiles('.github/scripts/install-go-deps.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-go-bin-
+
       - name: Install go dependencies
-        run: |
-          go install github.com/william8th/javadocset@latest
-          go install github.com/hairyhenderson/gomplate/v4/cmd/gomplate@v4.3.0
+        run: .github/scripts/install-go-deps.sh
 
       - name: Create directories
         run: mkdir output build
