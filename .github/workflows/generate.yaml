@@ -138,10 +138,10 @@ jobs:
 
       - name: Write docs pages to output
         run: |
-          FEED_ENTRY_URL="${GH_PAGES_URL}/Sitevision.docset.tgz"
-          FEED_URL="${GH_PAGES_URL}/Sitevision.xml"
-          DOCSET_URL="${GH_PAGES_URL}/Sitevision.docset.tgz"
-          BUILD_DATE=$(date -Iseconds)
+          export FEED_ENTRY_URL="${GH_PAGES_URL}/Sitevision.docset.tgz"
+          export FEED_URL="${GH_PAGES_URL}/Sitevision.xml"
+          export DOCSET_URL="${GH_PAGES_URL}/Sitevision.docset.tgz"
+          export BUILD_DATE=$(date -Iseconds)
 
           gomplate --input-dir=resources --output-dir=output --exclude-processing 'assets/*'
         env:
