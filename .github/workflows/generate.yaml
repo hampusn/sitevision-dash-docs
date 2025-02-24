@@ -105,7 +105,7 @@ jobs:
       - name: Install go dependencies
         run: |
           go install github.com/william8th/javadocset
-          go install github.com/hairyhenderson/gomplate/v4@v4.3.0
+          go install github.com/hairyhenderson/gomplate/v4/cmd/gomplate@v4.3.0
 
       - name: Create directories
         run: mkdir output build
