@@ -80,7 +80,7 @@ jobs:
     needs: find-and-check-version
     if: needs.find-and-check-version.outputs.SHOULD_BUILD == 'true'
     outputs:
-      DOCS_VERSION: ${{ steps.find-docs-zip-and-version.outputs.DOCS_VERSION }}
+      DOCS_VERSION: ${{ needs.find-and-check-version.outputs.DOCS_VERSION }}
 
     steps:
       - name: Checkout code
