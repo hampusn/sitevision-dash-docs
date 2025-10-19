@@ -126,7 +126,7 @@ jobs:
             echo "Error: invalid ZIP_URL"
             exit 1
           fi
-          curl -so "build/apidocs.zip" "$ZIP_URL"
+          curl -fsSo "build/apidocs.zip" "$ZIP_URL"
         env:
           ZIP_URL: ${{ env.ZIP_URL }}
 
