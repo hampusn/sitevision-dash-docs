@@ -36,8 +36,13 @@ jobs:
           SITEVISION_API_URL="${SITEVISION_API_BASE_URL}overview-summary.html"
 
           # Find the zip file URL
-          ZIP_URL=$(curl -s "$SITEVISION_API_URL" | grep -Eoi '[^"]+\.zip' | awk -v base="$SITEVISION_API_BASE_URL" '{ print base $1 }')
+          ZIP_URL=$(curl -sSfL "$SITEVISION_API_URL" | grep -Eoi '[^"]+\.zip' | awk -v base="$SITEVISION_API_BASE_URL" '{ print base $1 }')
           
+          if [ -z "$ZIP_URL" ]; then
+            echo "Failed to extract zip url from overview-summary.html"
+            exit 1
+          fi
+
           # Extract the version from the zip file name (e.g., apidocs_2025_01_1.zip -> 2025.01.1)
           DOCS_VERSION=$(basename "$ZIP_URL" | grep -Eo '[0-9]+_[0-9]+_[0-9]+' | sed 's/_/./g')
           echo "Parsed docs version: $DOCS_VERSION"
